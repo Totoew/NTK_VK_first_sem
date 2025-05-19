@@ -1,10 +1,15 @@
 import os
 import json
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram._utils.types import ReplyMarkup
 from typing import List, Dict, Optional
 import random
 import asyncio
+from dotenv import load_dotenv
+
+# Загружаем переменные окружения
+load_dotenv()
 
 def load_questions(file_path: str) -> List[Dict]:
     try:
@@ -157,7 +162,10 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
-    TOKEN = "7713964137:AAE6QT_iX0BtqUX3Zox8yGgCNpZyiYvSJEE"
+    TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+    if not TOKEN:
+        raise ValueError("Не найден токен бота в переменных окружения!")
+        
     app = Application.builder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
