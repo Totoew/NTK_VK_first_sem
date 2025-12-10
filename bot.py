@@ -41,9 +41,12 @@ def load_questions(file_path: str) -> List[Dict]:
 
 # Загружаем все наборы вопросов
 FILE_QUESTIONS = {
-    "ogn": load_questions("ogn.txt"),
-    "ovu": load_questions("ovu.txt"),
-    "vpp": load_questions("vpp.txt"),
+    "inzh": load_questions("./data/inzh.json"),
+    "med": load_questions("./data/med.json"),
+    "ottp": load_questions("./data/ottp.json"),
+    "vizh": load_questions("./data/vizh.json"),
+    "vtop": load_questions("./data/vtop.json"),
+    "all": load_questions("./data/all.json")
 }
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -62,9 +65,12 @@ async def select_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["mode"] = query.data.split("_")[1]
     await query.edit_message_text(
         "🔍 Теперь выберите набор вопросов:\n"
-        "/ogn - Огнестрельное оружие\n"
-        "/ovu - Общевоинские уставы\n"
-        "/vpp - Вопросы по ВПП"
+        "/inzh - Инженерная подготовка\n"
+        "/med - Медицинская подготовка\n"
+        "/ottp - Общая тактика. Тактическая подготовка\n"
+        "/vizh - Основы выживания\n"
+        "/vtop - Военная топография\n"
+        "/all - Все вопросы"
     )
 
 async def select_set(update: Update, context: ContextTypes.DEFAULT_TYPE, set_key: str):
@@ -89,7 +95,7 @@ async def select_set(update: Update, context: ContextTypes.DEFAULT_TYPE, set_key
 async def send_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     questions = context.user_data.get("selected_questions")
     if not questions:
-        await (update.message or update.callback_query.message).reply_text("❗️ Сначала выберите набор: /ogn /ovu /vpp")
+        await (update.message or update.callback_query.message).reply_text("❗️ Сначала выберите набор: /inzh /med /ottp /vizh /vtop /all")
         return
 
     mode = context.user_data.get("mode", "random")
@@ -144,7 +150,6 @@ async def check_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Правильный ответ: {correct}"
         )
 
-    await asyncio.sleep(1.5)
     await send_quiz(update, context)
 
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -160,7 +165,6 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await (update.message or update.callback_query.message).reply_text(stats)
     context.user_data.clear()
 
-
 def main():
     TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
     if not TOKEN:
@@ -170,11 +174,28 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("quiz", send_quiz))
-    app.add_handler(CommandHandler("ogn", lambda u, c: select_set(u, c, "ogn")))
-    app.add_handler(CommandHandler("ovu", lambda u, c: select_set(u, c, "ovu")))
-    app.add_handler(CommandHandler("vpp", lambda u, c: select_set(u, c, "vpp")))
+    app.add_handler(CommandHandler("inzh", lambda u, c: select_set(u, c, "inzh")))
+    app.add_handler(CommandHandler("med", lambda u, c: select_set(u, c, "med")))
+    app.add_handler(CommandHandler("ottp", lambda u, c: select_set(u, c, "ottp")))
+    app.add_handler(CommandHandler("vizh", lambda u, c: select_set(u, c, "vizh")))
+    app.add_handler(CommandHandler("vtop", lambda u, c: select_set(u, c, "vtop")))
+    app.add_handler(CommandHandler("all", lambda u, c: select_set(u, c, "all")))
     app.add_handler(CallbackQueryHandler(select_mode, pattern="^mode_"))
     app.add_handler(CallbackQueryHandler(check_answer, pattern="^ans_"))
+
+    """Настраивает меню команд в интерфейсе"""
+    commands = [
+        ("start", "Для выбора режима: по порядку, рандомные вопросы"),
+    ]
+    
+    from telegram import BotCommand
+    bot_commands = [BotCommand(command, description) for command, description in commands]
+    
+    async def set_commands(app):
+        await app.bot.set_my_commands(bot_commands)
+    
+    # Устанавливаем команды при запуске
+    app.post_init = set_commands
 
     print("Бот запущен...")
     app.run_polling()
